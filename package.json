@@ -1,0 +1,15 @@
+{
+  "name": "messenger-server",
+  "version": "1.0.0",
+  "description": "Chat-Server mit Firestore-Datenbank",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.1.0",
+    "ws": "^8.18.0"
+  }
+}

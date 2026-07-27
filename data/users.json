@@ -1,0 +1,98 @@
+{
+  "jnnesantl": {
+    "passwordHash": "$2a$10$TjK3CGJMAYnB8xWeBE3u.OOoye2kSwrZtaukf0MLbE0Mmy0ZZqx2W",
+    "contacts": [],
+    "avatar": "",
+    "settings": {
+      "darkMode": true
+    },
+    "bio": "",
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "twitter": ""
+    },
+    "statusMessage": "",
+    "statusEmoji": "🟢"
+  },
+  "sda": {
+    "passwordHash": "$2a$10$Tyq5cUtMHfZ2SfjBy8kJGeaeUjFUfHRt4WckvX7oD/DficDxn/.oi",
+    "contacts": [],
+    "avatar": "",
+    "settings": {
+      "darkMode": true
+    },
+    "bio": "",
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "twitter": ""
+    },
+    "statusMessage": "",
+    "statusEmoji": "🟢"
+  },
+  "test": {
+    "passwordHash": "$2a$10$zYjmVLzNFFUcTsh9FXuv7OkNwdAFDGSeVl04Gv2EkpB1Tv.jP2ObW",
+    "contacts": [],
+    "avatar": "",
+    "settings": {
+      "darkMode": true
+    },
+    "bio": "",
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "twitter": ""
+    },
+    "statusMessage": "",
+    "statusEmoji": "🟢"
+  },
+  "sadsa": {
+    "passwordHash": "$2a$10$SgUg6TphKxbsUSqz2VhDA.wuoYqL4oo2NOk/L/ZRKciI0iQL9ZX5q",
+    "contacts": [],
+    "avatar": "",
+    "settings": {
+      "darkMode": true
+    },
+    "bio": "",
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "twitter": ""
+    },
+    "statusMessage": "",
+    "statusEmoji": "🟢"
+  },
+  "jannes": {
+    "passwordHash": "$2a$10$79hpGItZNbmi7rnQyJVR/uKBmLlZvPZ5h9N3TWRLsUtJ87GGnFZA6",
+    "contacts": [],
+    "avatar": "",
+    "settings": {
+      "darkMode": true
+    },
+    "bio": "",
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "twitter": ""
+    },
+    "statusMessage": "",
+    "statusEmoji": "🟢"
+  },
+  "test1": {
+    "passwordHash": "$2a$10$ohd4mhNHZspK9jEQriT6rONGDc6TrqjdatBkc3506eo7.BwXzbX4W",
+    "contacts": [],
+    "avatar": "",
+    "settings": {
+      "darkMode": true
+    },
+    "bio": "",
+    "socials": {
+      "instagram": "",
+      "tiktok": "",
+      "twitter": ""
+    },
+    "statusMessage": "",
+    "statusEmoji": "🟢"
+  }
+}
