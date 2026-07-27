@@ -134,6 +134,10 @@ select.field{cursor:pointer}
 .ch-info-btn:hover{background:rgba(255,255,255,0.06);color:var(--pll)}
 .ch-info-btn.active{color:var(--pll)}
 @media (max-width:900px){.info-panel.open{position:fixed;right:0;top:0;bottom:0;z-index:30;box-shadow:-12px 0 40px rgba(0,0,0,0.6)}}
+.lang-row{display:flex;gap:8px}
+.lang-btn{flex:1;padding:11px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--bo);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr)}
+.lang-btn.active{background:var(--pglow2);border-color:var(--p);color:var(--pll)}
+.search-kbd{font-size:10px;color:var(--tx4);border:1px solid var(--bo);border-radius:5px;padding:1px 6px;font-family:'JetBrains Mono',monospace;flex-shrink:0}
 
 /* CHAT AREA */
 .chat-area{flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0;position:relative;overflow:hidden}
@@ -409,26 +413,26 @@ select.field{cursor:pointer}
 <div id="screen-access" class="screen active">
   <div class="auth-bg"><div class="auth-blob ab1"></div><div class="auth-blob ab2"></div><div class="auth-blob ab3"></div></div>
   <div class="auth-card">
-    <div class="auth-brand"><div class="auth-brand-icon">💬</div><div><div class="auth-brand-text">MeinMessenger</div><div class="auth-brand-sub">&gt; SECURE_CHANNEL</div></div></div>
+    <div class="auth-brand"><div class="auth-brand-icon">💬</div><div><div class="auth-brand-text">MeinMessenger</div><div class="auth-brand-sub" data-i18n="secure_channel">&gt; SECURE_CHANNEL</div></div></div>
     <div class="auth-div"></div>
     <div class="err" id="access-err"></div>
-    <input class="field" type="password" id="access-input" placeholder="Geheimwort eingeben…" autocomplete="off"/>
-    <button class="btn btn-p" onclick="submitAccess()">▶ Zugang anfordern</button>
+    <input class="field" type="password" id="access-input" placeholder="Aktivierungscode eingeben…" data-i18n-ph="access_placeholder" autocomplete="off"/>
+    <button class="btn btn-p" onclick="submitAccess()" data-i18n="access_button">▶ Zugang anfordern</button>
   </div>
 </div>
 <div id="screen-auth" class="screen">
   <div class="auth-bg"><div class="auth-blob ab1"></div><div class="auth-blob ab2"></div><div class="auth-blob ab3"></div></div>
   <div class="auth-card">
-    <div class="auth-brand"><div class="auth-brand-icon">💬</div><div><div class="auth-brand-text">MeinMessenger</div><div class="auth-brand-sub">&gt; AUTHENTIFIZIERUNG</div></div></div>
+    <div class="auth-brand"><div class="auth-brand-icon">💬</div><div><div class="auth-brand-text">MeinMessenger</div><div class="auth-brand-sub" data-i18n="auth_header">&gt; AUTHENTIFIZIERUNG</div></div></div>
     <div class="auth-div"></div>
     <div class="tabs">
-      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Anmelden</button>
-      <button class="tab-btn" id="tab-reg" onclick="switchTab('register')">Registrieren</button>
+      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')" data-i18n="tab_login">Anmelden</button>
+      <button class="tab-btn" id="tab-reg" onclick="switchTab('register')" data-i18n="tab_register">Registrieren</button>
     </div>
     <div class="err" id="auth-err"></div>
-    <input class="field" type="text" id="auth-user" placeholder="Benutzername" autocomplete="username"/>
-    <input class="field" type="password" id="auth-pass" placeholder="Passwort" autocomplete="current-password"/>
-    <button class="btn btn-p" id="auth-btn" onclick="submitAuth()">Anmelden</button>
+    <input class="field" type="text" id="auth-user" placeholder="Benutzername" data-i18n-ph="username_placeholder" autocomplete="username"/>
+    <input class="field" type="password" id="auth-pass" placeholder="Passwort" data-i18n-ph="password_placeholder" autocomplete="current-password"/>
+    <button class="btn btn-p" id="auth-btn" onclick="submitAuth()" data-i18n="tab_login">Anmelden</button>
     <button class="btn btn-s" onclick="goBackAccess()">← Zurück</button>
   </div>
 </div>
@@ -443,16 +447,16 @@ select.field{cursor:pointer}
         <button class="icon-btn" onclick="openSettings()" title="Einstellungen">⚙</button>
       </div>
     </div>
-    <div class="search-bar"><div class="search-inner"><span class="search-icon">🔍</span><input type="text" id="search-in" placeholder="Suchen…" oninput="renderList()"/></div></div>
+    <div class="search-bar"><div class="search-inner"><span class="search-icon">🔍</span><input type="text" id="search-in" placeholder="Suchen…" data-i18n-ph="search_placeholder" oninput="renderList()"/><span class="search-kbd">⌘K</span></div></div>
     <div class="sec-tabs">
-      <button class="sec-tab active" id="stab-chats" onclick="switchSec('chats')">CHATS</button>
-      <button class="sec-tab" id="stab-groups" onclick="switchSec('groups')">GRUPPEN</button>
+      <button class="sec-tab active" id="stab-chats" onclick="switchSec('chats')" data-i18n="tab_chats">CHATS</button>
+      <button class="sec-tab" id="stab-groups" onclick="switchSec('groups')" data-i18n="tab_groups">GRUPPEN</button>
     </div>
     <div class="contact-list" id="contact-list"></div>
   </div>
   <div class="chat-area" id="chat-area">
     <div class="no-chat" id="no-chat">
-      <div class="no-chat-icon">💬</div><p>Wähle einen Chat aus</p><small>Deine Nachrichten erscheinen hier</small>
+      <div class="no-chat-icon">💬</div><p data-i18n="no_chat_selected">Wähle einen Chat aus</p><small data-i18n="no_chat_sub">Deine Nachrichten erscheinen hier</small>
     </div>
     <div id="chat-content" class="chat-content">
       <div class="chat-header">
@@ -494,7 +498,7 @@ select.field{cursor:pointer}
         <button class="inp-icon-btn" onclick="triggerImagePick()" title="Bild">🖼</button>
         <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="onImageSelected(event)"/>
         <button class="inp-icon-btn" id="voice-btn" onmousedown="startVoiceRec()" ontouchstart="startVoiceRec(event)" title="Sprachnachricht">🎙</button>
-        <div class="msg-input-wrap"><input type="text" id="msg-input" placeholder="Nachricht schreiben…" oninput="onTyping()"/></div>
+        <div class="msg-input-wrap"><input type="text" id="msg-input" placeholder="Nachricht schreiben…" data-i18n-ph="msg_placeholder" oninput="onTyping()"/></div>
         <button class="send-btn" onclick="sendMessage()">➤</button>
       </div>
     </div>
@@ -507,22 +511,22 @@ select.field{cursor:pointer}
       <div class="ip-sub" id="ip-sub"></div>
 
       <div id="ip-members-block" style="display:none">
-        <div class="ip-section-label">Mitglieder</div>
+        <div class="ip-section-label" data-i18n="ip_members">Mitglieder</div>
         <div id="ip-members-list"></div>
       </div>
 
-      <div class="ip-section-label">Optionen</div>
+      <div class="ip-section-label" data-i18n="ip_options">Optionen</div>
       <div id="ip-group-options" style="display:none">
-        <button class="ip-opt-btn" onclick="openGroupSettings()">⚙ Gruppeneinstellungen</button>
-        <button class="ip-opt-btn" onclick="showToast('🔔 Benachrichtigungen: kommt bald')">🔔 Benachrichtigungen</button>
-        <button class="ip-opt-btn" onclick="showToast('🖼 Medien &amp; Dateien: kommt bald')">🖼 Medien &amp; Dateien</button>
-        <button class="ip-opt-btn danger" onclick="leaveCurrentGroup()">🚪 Gruppe verlassen</button>
+        <button class="ip-opt-btn" onclick="openGroupSettings()"><span>⚙</span> <span data-i18n="ip_group_settings">Gruppeneinstellungen</span></button>
+        <button class="ip-opt-btn" onclick="showToast(t('coming_soon'))"><span>🔔</span> <span data-i18n="ip_notifications">Benachrichtigungen</span></button>
+        <button class="ip-opt-btn" onclick="showToast(t('coming_soon'))"><span>🖼</span> <span data-i18n="ip_media">Medien &amp; Dateien</span></button>
+        <button class="ip-opt-btn danger" onclick="leaveCurrentGroup()"><span>🚪</span> <span data-i18n="ip_leave_group">Gruppe verlassen</span></button>
       </div>
       <div id="ip-contact-options" style="display:none">
-        <button class="ip-opt-btn" onclick="openProfileView(activeChatId)">👤 Profil ansehen</button>
-        <button class="ip-opt-btn" onclick="showToast('🔔 Benachrichtigungen: kommt bald')">🔔 Benachrichtigungen</button>
-        <button class="ip-opt-btn" onclick="showToast('🖼 Medien &amp; Dateien: kommt bald')">🖼 Medien &amp; Dateien</button>
-        <button class="ip-opt-btn danger" onclick="removeCurrentContact()">✕ Kontakt entfernen</button>
+        <button class="ip-opt-btn" onclick="openProfileView(activeChatId)"><span>👤</span> <span data-i18n="ip_view_profile">Profil ansehen</span></button>
+        <button class="ip-opt-btn" onclick="showToast(t('coming_soon'))"><span>🔔</span> <span data-i18n="ip_notifications">Benachrichtigungen</span></button>
+        <button class="ip-opt-btn" onclick="showToast(t('coming_soon'))"><span>🖼</span> <span data-i18n="ip_media">Medien &amp; Dateien</span></button>
+        <button class="ip-opt-btn danger" onclick="removeCurrentContact()"><span>✕</span> <span data-i18n="ip_remove_contact">Kontakt entfernen</span></button>
       </div>
     </div>
   </div>
@@ -614,8 +618,15 @@ select.field{cursor:pointer}
     </div>
     <div class="stab-pane" id="sp-design">
       <div class="settings-sec">
-        <h4>Modus</h4>
-        <div class="toggle-row"><div class="toggle-label">Dunkelmodus<small>Dunkle Benutzeroberfläche</small></div><div class="toggle on" id="dark-toggle" onclick="toggleDark()"></div></div>
+        <h4 data-i18n="settings_language">Sprache / Language</h4>
+        <div class="lang-row">
+          <button class="lang-btn active" id="lang-btn-de" onclick="setLanguage('de')">🇩🇪 Deutsch</button>
+          <button class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">🇬🇧 English</button>
+        </div>
+      </div>
+      <div class="settings-sec">
+        <h4 data-i18n="settings_mode">Modus</h4>
+        <div class="toggle-row"><div class="toggle-label" data-i18n="settings_darkmode">Dunkelmodus<small data-i18n="settings_darkmode_sub">Dunkle Benutzeroberfläche</small></div><div class="toggle on" id="dark-toggle" onclick="toggleDark()"></div></div>
       </div>
       <div class="settings-sec">
         <h4>Akzentfarbe</h4>
@@ -777,7 +788,7 @@ select.field{cursor:pointer}
 
 <script>
 // STATE
-let accessCode=localStorage.getItem('jm_access')||null;
+let deviceToken=localStorage.getItem('jm_device')||null;
 let authToken=localStorage.getItem('jm_token');
 let myUsername=localStorage.getItem('jm_user');
 let myAvatar=localStorage.getItem('jm_avatar')||'';
@@ -799,6 +810,70 @@ const iceServers={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 // HELPERS
 async function post(url,body){return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── SPRACHE / LANGUAGE ───────────────────────────────────────
+let currentLang=(mySettings&&mySettings.language)||'de';
+const TRANSLATIONS={
+  secure_channel:{de:'&gt; SICHERER_KANAL',en:'&gt; SECURE_CHANNEL'},
+  auth_header:{de:'&gt; AUTHENTIFIZIERUNG',en:'&gt; AUTHENTICATION'},
+  access_placeholder:{de:'Aktivierungscode eingeben…',en:'Enter activation code…'},
+  access_button:{de:'▶ Zugang anfordern',en:'▶ Request access'},
+  tab_login:{de:'Anmelden',en:'Log in'},
+  tab_register:{de:'Registrieren',en:'Register'},
+  username_placeholder:{de:'Benutzername',en:'Username'},
+  password_placeholder:{de:'Passwort',en:'Password'},
+  tab_chats:{de:'CHATS',en:'CHATS'},
+  tab_groups:{de:'GRUPPEN',en:'GROUPS'},
+  search_placeholder:{de:'Suchen…',en:'Search…'},
+  no_chat_selected:{de:'Wähle einen Chat aus',en:'Select a chat'},
+  no_chat_sub:{de:'Deine Nachrichten erscheinen hier',en:'Your messages appear here'},
+  msg_placeholder:{de:'Nachricht schreiben…',en:'Type a message…'},
+  ip_members:{de:'Mitglieder',en:'Members'},
+  ip_options:{de:'Optionen',en:'Options'},
+  ip_group_settings:{de:'Gruppeneinstellungen',en:'Group settings'},
+  ip_notifications:{de:'Benachrichtigungen',en:'Notifications'},
+  ip_media:{de:'Medien & Dateien',en:'Media & files'},
+  ip_leave_group:{de:'Gruppe verlassen',en:'Leave group'},
+  ip_view_profile:{de:'Profil ansehen',en:'View profile'},
+  ip_remove_contact:{de:'Kontakt entfernen',en:'Remove contact'},
+  coming_soon:{de:'Kommt bald 🚧',en:'Coming soon 🚧'},
+  settings_language:{de:'Sprache / Language',en:'Language / Sprache'},
+  settings_mode:{de:'Modus',en:'Mode'},
+  settings_darkmode:{de:'Dunkelmodus',en:'Dark mode'},
+  settings_darkmode_sub:{de:'Dunkle Benutzeroberfläche',en:'Dark user interface'},
+  no_contacts:{de:'Keine Kontakte',en:'No contacts'},
+  add_friends_hint:{de:'Füge Freunde hinzu ➕',en:'Add friends ➕'},
+  no_messages_yet:{de:'Noch keine Nachrichten',en:'No messages yet'},
+  no_groups_yet:{de:'Noch keine Gruppen',en:'No groups yet'},
+  new_group_btn:{de:'＋ Neue Gruppe',en:'＋ New group'},
+  favorites:{de:'Favoriten',en:'Favorites'},
+  direct_messages:{de:'Direktnachrichten',en:'Direct messages'},
+  groups_label:{de:'Gruppen',en:'Groups'},
+  group_badge:{de:'Gruppe',en:'Group'},
+  online:{de:'● Online',en:'● Online'},
+  offline:{de:'⚫ Offline',en:'⚫ Offline'},
+  typing:{de:'✍ schreibt…',en:'✍ typing…'},
+  members_suffix:{de:'Mitglieder',en:'members'},
+  pin_title:{de:'Anpinnen',en:'Pin'},
+  you_prefix:{de:'Du: ',en:'You: '},
+  deleted_msg:{de:'🗑 Gelöscht',en:'🗑 Deleted'},
+  voice_msg:{de:'🎙 Sprachnachricht',en:'🎙 Voice message'},
+  image_msg:{de:'🖼 Bild',en:'🖼 Image'}
+};
+function t(key){return (TRANSLATIONS[key] && TRANSLATIONS[key][currentLang]) || (TRANSLATIONS[key] && TRANSLATIONS[key].de) || key;}
+function applyLanguage(lang){
+  currentLang=lang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{if(TRANSLATIONS[el.getAttribute('data-i18n')])el.innerHTML=t(el.getAttribute('data-i18n'));});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{if(TRANSLATIONS[el.getAttribute('data-i18n-ph')])el.placeholder=t(el.getAttribute('data-i18n-ph'));});
+  document.getElementById('lang-btn-de')?.classList.toggle('active',lang==='de');
+  document.getElementById('lang-btn-en')?.classList.toggle('active',lang==='en');
+  if(document.getElementById('screen-app')?.classList.contains('active')){renderList();if(activeChatId&&!activeChatId.startsWith('group:'))updateChatStatus(activeChatId);renderInfoPanel();}
+}
+function setLanguage(lang){
+  mySettings.language=lang;localStorage.setItem('jm_settings',JSON.stringify(mySettings));
+  applyLanguage(lang);
+  if(authToken)post('/api/settings',{token:authToken,settings:mySettings});
+}
 function fmtTime(ts){const d=new Date(ts),now=new Date();if(d.toDateString()===now.toDateString())return d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});}
 function fmtDur(s){return Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
 function shake(id){const el=document.getElementById(id);if(!el)return;el.style.animation='none';el.offsetHeight;el.style.animation='shake .4s ease';}
@@ -829,17 +904,22 @@ function saveSettings(){localStorage.setItem('jm_settings',JSON.stringify(mySett
 function switchStab(id){document.querySelectorAll('.stab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.getElementById(id)?.classList.add('active');const key=id.replace('sp-','');document.getElementById('sb-'+key)?.classList.add('active');}
 
 // INIT
-window.addEventListener('load',()=>{
-  initStatusEmojis();initEmojiPicker();applyAllSettings();
-  if(authToken&&myUsername)enterApp();
-  else if(accessCode)showScreen('screen-auth');
+window.addEventListener('load',async ()=>{
+  initStatusEmojis();initEmojiPicker();applyAllSettings();applyLanguage(currentLang);
+  if(authToken&&myUsername){enterApp();}
+  else if(deviceToken){
+    const res=await fetch('/api/check-device',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceToken})});
+    const d=await res.json();
+    if(d.ok)showScreen('screen-auth');
+    else{localStorage.removeItem('jm_device');deviceToken=null;showScreen('screen-access');}
+  }
   else showScreen('screen-access');
   setupKeyboard();
   document.addEventListener('click',e=>{if(!e.target.closest('#ctx-menu'))document.getElementById('ctx-menu').classList.remove('active');});
 });
 
 // ACCESS
-async function submitAccess(){const code=document.getElementById('access-input').value.trim();const err=document.getElementById('access-err');err.textContent='';if(!code){err.textContent='[ FEHLER ] Geheimwort eingeben.';return;}const res=await fetch('/api/check-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const d=await res.json();if(d.ok){accessCode=code;localStorage.setItem('jm_access',code);showScreen('screen-auth');}else{err.textContent='[ FEHLER ] Falsches Geheimwort.';shake('access-input');}}
+async function submitAccess(){const code=document.getElementById('access-input').value.trim();const err=document.getElementById('access-err');err.textContent='';if(!code){err.textContent='[ FEHLER ] Aktivierungscode eingeben.';return;}const res=await fetch('/api/check-access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const d=await res.json();if(d.ok){deviceToken=d.deviceToken;localStorage.setItem('jm_device',deviceToken);showScreen('screen-auth');}else{err.textContent='[ FEHLER ] Ungültiger oder abgelaufener Code.';shake('access-input');}}
 function goBackAccess(){showScreen('screen-access');}
 
 // AUTH
@@ -849,8 +929,8 @@ async function submitAuth(){
   const user=document.getElementById('auth-user').value.trim();const pass=document.getElementById('auth-pass').value;
   const err=document.getElementById('auth-err');err.textContent='';
   if(!user||!pass){err.textContent='[ FEHLER ] Alle Felder ausfüllen.';return;}
-  if(!accessCode){err.textContent='[ FEHLER ] Sitzung abgelaufen.';setTimeout(()=>showScreen('screen-access'),1500);return;}
-  const res=await post(authMode==='login'?'/api/login':'/api/register',{code:accessCode,username:user,password:pass});
+  if(!deviceToken){err.textContent='[ FEHLER ] Gerät nicht freigeschaltet.';setTimeout(()=>showScreen('screen-access'),1500);return;}
+  const res=await post(authMode==='login'?'/api/login':'/api/register',{deviceToken,username:user,password:pass});
   const d=await res.json();
   if(!res.ok){err.textContent='[ FEHLER ] '+d.error;shake('auth-pass');return;}
   authToken=d.token;myUsername=d.username;myAvatar=d.avatar||'';
@@ -862,7 +942,7 @@ async function submitAuth(){
 function logout(){['jm_token','jm_user','jm_avatar','jm_settings'].forEach(k=>localStorage.removeItem(k));authToken=null;myUsername=null;location.reload();}
 
 // ENTER APP
-async function enterApp(){showScreen('screen-app');updateSidebarProfile();updateSettingsUI();applyWallpaper();await Promise.all([loadContacts(),loadGroups(),loadFRs()]);renderList();connectSocket();}
+async function enterApp(){showScreen('screen-app');updateSidebarProfile();updateSettingsUI();applyWallpaper();applyLanguage(currentLang);await Promise.all([loadContacts(),loadGroups(),loadFRs()]);renderList();connectSocket();}
 function updateSidebarProfile(){const av=document.getElementById('sidebar-avatar');if(av){if(myAvatar){av.innerHTML=`<img src="${myAvatar}"/>`;}else{av.textContent=(myUsername||'?').charAt(0).toUpperCase();}}const un=document.getElementById('sidebar-uname');if(un)un.textContent=myUsername||'—';const st=document.getElementById('sidebar-status');if(st)st.textContent=(myStatusEmoji||'🟢')+' '+(myStatusMsg||'Online');}
 async function loadContacts(){const r=await fetch('/api/contacts?token='+encodeURIComponent(authToken));if(!r.ok){logout();return;}contacts=(await r.json()).contacts||[];}
 async function loadGroups(){const r=await fetch('/api/groups?token='+encodeURIComponent(authToken));if(!r.ok)return;groups_list=(await r.json()).groups||[];}
@@ -887,41 +967,41 @@ function renderList(){
   const list=document.getElementById('contact-list');list.innerHTML='';
   if(currentSec==='chats'){
     const f=contacts.filter(c=>c.username.includes(search));
-    if(!f.length){list.innerHTML=`<div style="padding:32px 16px;text-align:center;color:var(--tx4)"><div style="font-size:36px;margin-bottom:12px">👋</div><div style="font-size:13px;font-weight:600">Keine Kontakte</div><div style="font-size:12px;margin-top:6px">Füge Freunde hinzu ➕</div></div>`;return;}
+    if(!f.length){list.innerHTML=`<div style="padding:32px 16px;text-align:center;color:var(--tx4)"><div style="font-size:36px;margin-bottom:12px">👋</div><div style="font-size:13px;font-weight:600">${t('no_contacts')}</div><div style="font-size:12px;margin-top:6px">${t('add_friends_hint')}</div></div>`;return;}
     const pinned=f.filter(c=>isPinned(c.username));
     const rest=f.filter(c=>!isPinned(c.username));
     function renderContactRow(c){
       const msgs=localMessages[c.username]||[];const last=msgs[msgs.length-1];
-      const preview=last?(last.deleted?'🗑 Gelöscht':(last.audio?'🎙 Sprachnachricht':(last.image?'🖼 Bild':(last.from===myUsername?'Du: '+last.text:last.text)))):'Noch keine Nachrichten';
+      const preview=last?(last.deleted?t('deleted_msg'):(last.audio?t('voice_msg'):(last.image?t('image_msg'):(last.from===myUsername?t('you_prefix')+last.text:last.text)))):t('no_messages_yet');
       const unread=unreadCounts[c.username]||0;
       const el=document.createElement('div');el.className='ci'+(activeChatId===c.username?' selected':'');el.onclick=()=>openChat(c.username);
-      el.innerHTML=`<div class="avatar ${c.online?'online':''}">${c.avatar?`<img src="${c.avatar}"/>`:c.username.charAt(0).toUpperCase()}</div><div class="ci-info"><div class="ci-name">${esc(c.username)}</div><div class="ci-prev">${typingMap[c.username]?'<em>✍ schreibt…</em>':esc(preview)}</div></div><button class="pin-btn${isPinned(c.username)?' pinned':''}" title="Anpinnen">📌</button><div class="ci-meta"><div class="ci-time">${last?fmtTime(last.time):''}</div>${unread>0?`<div class="ci-unread">${unread}</div>`:''}</div>`;
+      el.innerHTML=`<div class="avatar ${c.online?'online':''}">${c.avatar?`<img src="${c.avatar}"/>`:c.username.charAt(0).toUpperCase()}</div><div class="ci-info"><div class="ci-name">${esc(c.username)}</div><div class="ci-prev">${typingMap[c.username]?'<em>'+t('typing')+'</em>':esc(preview)}</div></div><button class="pin-btn${isPinned(c.username)?' pinned':''}" title="${t('pin_title')}">📌</button><div class="ci-meta"><div class="ci-time">${last?fmtTime(last.time):''}</div>${unread>0?`<div class="ci-unread">${unread}</div>`:''}</div>`;
       el.querySelector('.pin-btn').onclick=(e)=>togglePin(c.username,e);
       list.appendChild(el);
     }
     if(pinned.length){
-      const lbl=document.createElement('div');lbl.className='sec-label';lbl.textContent='Favoriten';list.appendChild(lbl);
+      const lbl=document.createElement('div');lbl.className='sec-label';lbl.textContent=t('favorites');list.appendChild(lbl);
       pinned.forEach(renderContactRow);
-      const lbl2=document.createElement('div');lbl2.className='sec-label';lbl2.textContent='Direktnachrichten';list.appendChild(lbl2);
+      const lbl2=document.createElement('div');lbl2.className='sec-label';lbl2.textContent=t('direct_messages');list.appendChild(lbl2);
     }
     rest.forEach(renderContactRow);
   }else{
-    const gbtn=document.createElement('div');gbtn.style.cssText='padding:8px 6px';gbtn.innerHTML=`<button class="btn btn-s" style="font-size:12px;padding:9px;margin-bottom:0" onclick="openCreateGroup()">＋ Neue Gruppe</button>`;list.appendChild(gbtn);
+    const gbtn=document.createElement('div');gbtn.style.cssText='padding:8px 6px';gbtn.innerHTML=`<button class="btn btn-s" style="font-size:12px;padding:9px;margin-bottom:0" onclick="openCreateGroup()">${t('new_group_btn')}</button>`;list.appendChild(gbtn);
     const f=groups_list.filter(g=>g.name.toLowerCase().includes(search));
-    if(!f.length){const e=document.createElement('div');e.style.cssText='padding:20px;text-align:center;color:var(--tx4);font-size:12px';e.textContent='Noch keine Gruppen';list.appendChild(e);return;}
+    if(!f.length){const e=document.createElement('div');e.style.cssText='padding:20px;text-align:center;color:var(--tx4);font-size:12px';e.textContent=t('no_groups_yet');list.appendChild(e);return;}
     function renderGroupRow(g){
-      const msgs=localMessages['group:'+g.id]||g.messages||[];const last=msgs[msgs.length-1];const preview=last?(last.image?'🖼 Bild':(last.from===myUsername?'Du: '+last.text:last.from+': '+last.text)):'Noch keine Nachrichten';
+      const msgs=localMessages['group:'+g.id]||g.messages||[];const last=msgs[msgs.length-1];const preview=last?(last.image?t('image_msg'):(last.from===myUsername?t('you_prefix')+last.text:last.from+': '+last.text)):t('no_messages_yet');
       const el=document.createElement('div');el.className='ci'+(activeChatId==='group:'+g.id?' selected':'');el.onclick=()=>openGroupChat(g.id);
-      el.innerHTML=`<div class="avatar grp">👥</div><div class="ci-info"><div class="ci-name">${esc(g.name)} <span class="gbadge">Gruppe</span></div><div class="ci-prev">${esc(preview)}</div></div><button class="pin-btn${isPinned('group:'+g.id)?' pinned':''}" title="Anpinnen">📌</button><div class="ci-meta"><div class="ci-time">${last?fmtTime(last.time):''}</div></div>`;
+      el.innerHTML=`<div class="avatar grp">👥</div><div class="ci-info"><div class="ci-name">${esc(g.name)} <span class="gbadge">${t('group_badge')}</span></div><div class="ci-prev">${esc(preview)}</div></div><button class="pin-btn${isPinned('group:'+g.id)?' pinned':''}" title="${t('pin_title')}">📌</button><div class="ci-meta"><div class="ci-time">${last?fmtTime(last.time):''}</div></div>`;
       el.querySelector('.pin-btn').onclick=(e)=>togglePin('group:'+g.id,e);
       list.appendChild(el);
     }
     const pinnedG=f.filter(g=>isPinned('group:'+g.id));
     const restG=f.filter(g=>!isPinned('group:'+g.id));
     if(pinnedG.length){
-      const lbl=document.createElement('div');lbl.className='sec-label';lbl.textContent='Favoriten';list.appendChild(lbl);
+      const lbl=document.createElement('div');lbl.className='sec-label';lbl.textContent=t('favorites');list.appendChild(lbl);
       pinnedG.forEach(renderGroupRow);
-      const lbl2=document.createElement('div');lbl2.className='sec-label';lbl2.textContent='Gruppen';list.appendChild(lbl2);
+      const lbl2=document.createElement('div');lbl2.className='sec-label';lbl2.textContent=t('groups_label');list.appendChild(lbl2);
     }
     restG.forEach(renderGroupRow);
   }
@@ -1080,7 +1160,7 @@ async function saveGroupSettings(){
   if(activeChatId==='group:'+gsGroupId){document.getElementById('ch-name').innerHTML=esc(d.group.name)+' <span class="gbadge">Gruppe</span>';}
   renderList();renderInfoPanel();showToast('✓ Gruppe aktualisiert');closeModal('modal-group-settings');
 }
-function updateChatStatus(username){const el=document.getElementById('ch-status');if(!el)return;const c=contacts.find(x=>x.username===username);el.className='ch-status';if(typingMap[username]){el.textContent='✍ schreibt…';el.classList.add('typing');}else if(c?.online){el.textContent='● Online';el.classList.add('online');}else{el.textContent='⚫ Offline';}}
+function updateChatStatus(username){const el=document.getElementById('ch-status');if(!el)return;const c=contacts.find(x=>x.username===username);el.className='ch-status';if(typingMap[username]){el.textContent=t('typing');el.classList.add('typing');}else if(c?.online){el.textContent=t('online');el.classList.add('online');}else{el.textContent=t('offline');}}
 
 function renderMessages(){
   const container=document.getElementById('chat-messages');if(!activeChatId||!container)return;

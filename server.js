@@ -4,9 +4,69 @@ const WebSocket = require("ws");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const admin = require("firebase-admin");
+const { Client, GatewayIntentBits } = require("discord.js");
 
 const PORT = process.env.PORT || 3000;
-const ACCESS_CODE = "antichatcontrol";
+
+// ==========================================================
+// Discord-Bot Setup
+// - Lokal auf deinem PC: liest die Datei discord-config.json
+// - Auf Render: liest die Umgebungsvariablen DISCORD_BOT_TOKEN / DISCORD_ALLOWED_IDS
+// ==========================================================
+let discordConfig = { token: null, requiredRoleId: null };
+if (process.env.DISCORD_BOT_TOKEN) {
+  discordConfig.token = process.env.DISCORD_BOT_TOKEN;
+  discordConfig.requiredRoleId = process.env.DISCORD_REQUIRED_ROLE_ID || null;
+} else {
+  try {
+    discordConfig = require("./discord-config.json");
+  } catch (e) {
+    console.log("⚠️  Keine discord-config.json gefunden - Discord-Bot bleibt aus (Zugangscode funktioniert erst, wenn du sie einrichtest).");
+  }
+}
+
+// Merkt sich vergebene Codes: code -> Ablaufzeitpunkt (in ms)
+let activationCodes = new Map();
+
+if (discordConfig.token) {
+  const discordClient = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMembers
+    ]
+  });
+
+  discordClient.on("ready", () => {
+    console.log(`✅ Discord-Bot eingeloggt als ${discordClient.user.tag}`);
+  });
+
+  discordClient.on("messageCreate", async (msg) => {
+    if (msg.author.bot) return;
+    if (!msg.guild) return; // nur auf Nachrichten in einem Server reagieren, keine DMs mehr
+
+    const text = msg.content.trim().toLowerCase();
+    if (text !== "!code" && text !== "/code") return;
+
+    const requiredRole = discordConfig.requiredRoleId;
+    if (requiredRole) {
+      const member = msg.member || await msg.guild.members.fetch(msg.author.id).catch(() => null);
+      if (!member || !member.roles.cache.has(requiredRole)) {
+        msg.reply("❌ Du hast nicht die nötige Rolle, um einen Zugangscode anzufordern.");
+        return;
+      }
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-stelliger Code
+    activationCodes.set(code, Date.now() + 5 * 60 * 1000); // 5 Minuten gültig
+    msg.reply(`🔑 Aktivierungscode: **${code}**\nGültig für 5 Minuten.`);
+  });
+
+  discordClient.login(discordConfig.token).catch(e => {
+    console.log("⚠️  Discord-Bot konnte sich nicht einloggen:", e.message);
+  });
+}
 
 // ==========================================================
 // Firebase / Firestore Setup
@@ -26,6 +86,7 @@ const usersCol = db.collection("users");
 const messagesCol = db.collection("messages");
 const groupsCol = db.collection("groups");
 const friendRequestsCol = db.collection("friendRequests");
+const trustedDevicesCol = db.collection("trustedDevices");
 
 const app = express();
 app.use(express.static("public"));
@@ -52,13 +113,35 @@ async function getUser(username) {
 
 // ===== REST API =====
 
-app.post("/api/check-access", (req, res) => {
-  res.json({ ok: req.body.code === ACCESS_CODE });
+// Hilfsfunktion: prüft, ob ein Gerät bereits dauerhaft freigeschaltet ist
+async function isDeviceTrusted(deviceToken) {
+  if (!deviceToken) return false;
+  const doc = await trustedDevicesCol.doc(deviceToken).get();
+  return doc.exists;
+}
+
+// Einmal-Code (von Discord) einlösen -> Gerät wird DAUERHAFT freigeschaltet
+app.post("/api/check-access", async (req, res) => {
+  const { code } = req.body;
+  const expiry = activationCodes.get(code);
+  if (!expiry || expiry < Date.now()) {
+    return res.json({ ok: false });
+  }
+  activationCodes.delete(code); // Code ist nur einmal gültig
+  const deviceToken = crypto.randomBytes(32).toString("hex");
+  await trustedDevicesCol.doc(deviceToken).set({ createdAt: Date.now() });
+  res.json({ ok: true, deviceToken });
+});
+
+// Prüft, ob ein gespeichertes Geräte-Token noch gültig ist (z.B. beim Seiten-Neuladen)
+app.post("/api/check-device", async (req, res) => {
+  const ok = await isDeviceTrusted(req.body.deviceToken);
+  res.json({ ok });
 });
 
 app.post("/api/register", async (req, res) => {
-  const { code, username, password } = req.body;
-  if (code !== ACCESS_CODE) return res.status(403).json({ error: "Falscher Zugangscode." });
+  const { deviceToken, username, password } = req.body;
+  if (!(await isDeviceTrusted(deviceToken))) return res.status(403).json({ error: "Dieses Gerät ist nicht freigeschaltet." });
   if (!username || !password || username.length < 3 || password.length < 4)
     return res.status(400).json({ error: "Name (min. 3) und Passwort (min. 4 Zeichen) nötig." });
   const uname = username.trim().toLowerCase();
@@ -78,8 +161,8 @@ app.post("/api/register", async (req, res) => {
 });
 
 app.post("/api/login", async (req, res) => {
-  const { code, username, password } = req.body;
-  if (code !== ACCESS_CODE) return res.status(403).json({ error: "Falscher Zugangscode." });
+  const { deviceToken, username, password } = req.body;
+  if (!(await isDeviceTrusted(deviceToken))) return res.status(403).json({ error: "Dieses Gerät ist nicht freigeschaltet." });
   const uname = (username || "").trim().toLowerCase();
   const user = await getUser(uname);
   if (!user) return res.status(400).json({ error: "Name oder Passwort falsch." });
