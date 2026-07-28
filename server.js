@@ -98,6 +98,53 @@ let sessions = new Map(); // token -> username
 function makeToken() { return crypto.randomBytes(24).toString("hex"); }
 function getUserFromToken(token) { return sessions.get(token) || null; }
 
+// ==========================================================
+// Sicherheits-Helfer
+// ==========================================================
+
+// Erlaubt nur unbedenkliche Zeichen im Benutzernamen. Das verhindert u.a.,
+// dass jemand über seinen eigenen Usernamen JS/HTML in andere Clients
+// einschleust (der Name landet an mehreren Stellen im Frontend in
+// Inline-onclick-Strings, nicht nur als Text).
+const USERNAME_RE = /^[a-zA-Z0-9_.]{3,20}$/;
+function isValidUsername(u) { return typeof u === "string" && USERNAME_RE.test(u); }
+
+// Avatare/Wallpaper dürfen nur "echte" Bild-Daten oder https-URLs sein,
+// und nicht beliebig groß werden (Firestore-Dokumente sind auf 1 MiB limitiert).
+const MAX_AVATAR_BYTES = 700 * 1024; // ~700KB Rohstring, reicht für ein komprimiertes Profilbild
+function isValidImageValue(v) {
+  if (v === "" || v === null || v === undefined) return true; // leer/entfernen ist ok
+  if (typeof v !== "string") return false;
+  if (v.length > MAX_AVATAR_BYTES) return false;
+  return v.startsWith("data:image/") || v.startsWith("https://");
+}
+
+// Einfacher In-Memory Rate-Limiter für sensible Endpunkte (Login, Registrierung,
+// Zugangscode). Kein Ersatz für einen echten Reverse-Proxy-Rate-Limiter in Produktion,
+// aber verhindert triviales Brute-Forcing.
+const rateBuckets = new Map(); // key -> { count, resetAt }
+function rateLimit(name, max, windowMs) {
+  return (req, res, next) => {
+    const key = name + ":" + (req.ip || req.headers["x-forwarded-for"] || "unknown");
+    const now = Date.now();
+    let bucket = rateBuckets.get(key);
+    if (!bucket || bucket.resetAt < now) {
+      bucket = { count: 0, resetAt: now + windowMs };
+      rateBuckets.set(key, bucket);
+    }
+    bucket.count++;
+    if (bucket.count > max) {
+      return res.status(429).json({ error: "Zu viele Versuche. Bitte kurz warten." });
+    }
+    next();
+  };
+}
+// Alte Buckets ab und zu aufräumen, damit die Map nicht unbegrenzt wächst
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateBuckets) if (v.resetAt < now) rateBuckets.delete(k);
+}, 10 * 60 * 1000);
+
 let onlineUsers = new Map(); // username -> ws
 let typingTimers = new Map();
 
@@ -121,7 +168,7 @@ async function isDeviceTrusted(deviceToken) {
 }
 
 // Einmal-Code (von Discord) einlösen -> Gerät wird DAUERHAFT freigeschaltet
-app.post("/api/check-access", async (req, res) => {
+app.post("/api/check-access", rateLimit("check-access", 20, 10 * 60 * 1000), async (req, res) => {
   const { code } = req.body;
   const expiry = activationCodes.get(code);
   if (!expiry || expiry < Date.now()) {
@@ -139,12 +186,14 @@ app.post("/api/check-device", async (req, res) => {
   res.json({ ok });
 });
 
-app.post("/api/register", async (req, res) => {
+app.post("/api/register", rateLimit("register", 10, 10 * 60 * 1000), async (req, res) => {
   const { deviceToken, username, password } = req.body;
   if (!(await isDeviceTrusted(deviceToken))) return res.status(403).json({ error: "Dieses Gerät ist nicht freigeschaltet." });
-  if (!username || !password || username.length < 3 || password.length < 4)
-    return res.status(400).json({ error: "Name (min. 3) und Passwort (min. 4 Zeichen) nötig." });
+  if (!username || !password || password.length < 4)
+    return res.status(400).json({ error: "Name und Passwort (min. 4 Zeichen) nötig." });
   const uname = username.trim().toLowerCase();
+  if (!isValidUsername(uname))
+    return res.status(400).json({ error: "Name muss 3-20 Zeichen sein: nur Buchstaben, Zahlen, '_' und '.'." });
   const existing = await getUser(uname);
   if (existing) return res.status(400).json({ error: "Name schon vergeben." });
   const passwordHash = await bcrypt.hash(password, 10);
@@ -160,7 +209,7 @@ app.post("/api/register", async (req, res) => {
   res.json({ token, username: uname });
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", rateLimit("login", 15, 10 * 60 * 1000), async (req, res) => {
   const { deviceToken, username, password } = req.body;
   if (!(await isDeviceTrusted(deviceToken))) return res.status(403).json({ error: "Dieses Gerät ist nicht freigeschaltet." });
   const uname = (username || "").trim().toLowerCase();
@@ -185,12 +234,21 @@ app.post("/api/profile", async (req, res) => {
   const { token, avatar, bio, socials, statusMessage, statusEmoji } = req.body;
   const me = getUserFromToken(token);
   if (!me) return res.status(401).json({ error: "Nicht eingeloggt." });
+  if (avatar !== undefined && !isValidImageValue(avatar))
+    return res.status(400).json({ error: "Ungültiges Avatarbild (zu groß oder falsches Format)." });
   const updates = {};
   if (avatar !== undefined) updates.avatar = avatar;
-  if (bio !== undefined) updates.bio = bio.substring(0, 300);
-  if (socials !== undefined) updates.socials = socials;
-  if (statusMessage !== undefined) updates.statusMessage = statusMessage.substring(0, 100);
-  if (statusEmoji !== undefined) updates.statusEmoji = statusEmoji;
+  if (bio !== undefined) updates.bio = String(bio).substring(0, 300);
+  if (socials !== undefined) {
+    const s = socials || {};
+    updates.socials = {
+      instagram: String(s.instagram || "").substring(0, 40),
+      tiktok: String(s.tiktok || "").substring(0, 40),
+      twitter: String(s.twitter || "").substring(0, 40)
+    };
+  }
+  if (statusMessage !== undefined) updates.statusMessage = String(statusMessage).substring(0, 100);
+  if (statusEmoji !== undefined) updates.statusEmoji = String(statusEmoji).substring(0, 8);
   await usersCol.doc(me).set(updates, { merge: true });
   const meData = await getUser(me);
   (meData.contacts || []).forEach(c => sendTo(c, {
@@ -215,7 +273,8 @@ app.get("/api/profile/:username", async (req, res) => {
     socials: user.socials || {},
     statusMessage: user.statusMessage || "",
     statusEmoji: user.statusEmoji || "🟢",
-    online: onlineUsers.has(target)
+    online: onlineUsers.has(target),
+    publicKey: user.publicKey || null
   });
 });
 
@@ -250,7 +309,8 @@ app.get("/api/contacts", async (req, res) => {
       avatar: cData?.avatar || "",
       online: onlineUsers.has(c),
       statusMessage: cData?.statusMessage || "",
-      statusEmoji: cData?.statusEmoji || "🟢"
+      statusEmoji: cData?.statusEmoji || "🟢",
+      publicKey: cData?.publicKey || null
     };
   }));
   res.json({ contacts: list });
@@ -268,12 +328,11 @@ app.post("/api/friends/request", async (req, res) => {
   const meData = await getUser(me);
   if ((meData.contacts || []).includes(target)) return res.status(400).json({ error: "Ihr seid schon Freunde." });
 
-  const allFRSnap = await friendRequestsCol.get();
-  const existing = allFRSnap.docs.find(d => {
-    const r = d.data();
-    return (r.from === me && r.to === target) || (r.from === target && r.to === me);
-  });
-  if (existing) return res.status(400).json({ error: "Anfrage bereits gesendet." });
+  const [fwdSnap, revSnap] = await Promise.all([
+    friendRequestsCol.where("from", "==", me).where("to", "==", target).limit(1).get(),
+    friendRequestsCol.where("from", "==", target).where("to", "==", me).limit(1).get()
+  ]);
+  if (!fwdSnap.empty || !revSnap.empty) return res.status(400).json({ error: "Anfrage bereits gesendet." });
 
   const entry = { from: me, to: target, time: Date.now() };
   const docRef = await friendRequestsCol.add(entry);
@@ -363,9 +422,8 @@ app.post("/api/messages/delete", async (req, res) => {
     const msg = list.find(m => m.id === messageId);
     if (msg && msg.from === me) {
       msg.deleted = true;
-      msg.text = "";
-      msg.image = "";
-      msg.audio = "";
+      msg.ct = "";
+      msg.iv = "";
       await docRef.set({ list }, { merge: true });
       sendTo(withUser, { type: "messageDeleted", messageId, with: me });
       return res.json({ ok: true });
@@ -398,23 +456,47 @@ app.post("/api/messages/react", async (req, res) => {
 });
 
 // Gruppen
+//
+// Jedes Gruppen-Dokument enthält ein "keys"-Feld: { username: {wrappedKey, iv} }.
+// Das ist der zufällige AES-Gruppenschlüssel, einzeln für jedes Mitglied per ECDH
+// verschlüsselt ("eingepackt"). Der Server darf NIEMALS die Pakete anderer Mitglieder
+// an ein Mitglied herausgeben - groupForMember() entfernt "keys" komplett und ersetzt
+// es durch nur das eigene Paket des Empfängers ("myWrappedKey").
+function groupForMember(group, username) {
+  const { keys, ...rest } = group;
+  return { ...rest, myWrappedKey: (keys && keys[username]) || null };
+}
+function notifyGroupMembers(group, type, extra) {
+  (group.members || []).forEach(m => sendTo(m, { type, group: groupForMember(group, m), ...(extra || {}) }));
+}
+
 app.post("/api/groups/create", async (req, res) => {
-  const { token, name, members } = req.body;
+  const { token, name, members, wrappedKeys } = req.body;
   const me = getUserFromToken(token);
   if (!me) return res.status(401).json({ error: "Nicht eingeloggt." });
   const groupId = "g_" + makeToken().substring(0, 12);
   const allMembers = [...new Set([me, ...(members || [])])];
-  const group = { id: groupId, name: name || "Neue Gruppe", members: allMembers, messages: [], createdBy: me, avatar: "", time: Date.now() };
+  // Nur Pakete für tatsächliche Mitglieder übernehmen, alles andere ignorieren.
+  const keys = {};
+  if (wrappedKeys && typeof wrappedKeys === "object") {
+    for (const u of allMembers) {
+      const w = wrappedKeys[u];
+      // "from" wird serverseitig gesetzt (nicht vom Client übernommen!), damit der
+      // Empfänger später weiß, mit wessen ECDH-Shared-Key er entpacken muss.
+      if (w && typeof w.wrappedKey === "string" && typeof w.iv === "string") keys[u] = { wrappedKey: w.wrappedKey, iv: w.iv, from: me };
+    }
+  }
+  const group = { id: groupId, name: name || "Neue Gruppe", members: allMembers, messages: [], createdBy: me, avatar: "", time: Date.now(), keys };
   await groupsCol.doc(groupId).set(group);
-  allMembers.forEach(m => sendTo(m, { type: "groupCreated", group }));
-  res.json({ ok: true, groupId, group });
+  notifyGroupMembers(group, "groupCreated");
+  res.json({ ok: true, groupId, group: groupForMember(group, me) });
 });
 
 app.get("/api/groups", async (req, res) => {
   const me = getUserFromToken(req.query.token);
   if (!me) return res.status(401).json({ error: "Nicht eingeloggt." });
   const snap = await groupsCol.where("members", "array-contains", me).get();
-  res.json({ groups: snap.docs.map(d => d.data()) });
+  res.json({ groups: snap.docs.map(d => groupForMember(d.data(), me)) });
 });
 
 app.get("/api/groups/messages", async (req, res) => {
@@ -432,17 +514,64 @@ app.post("/api/groups/update", async (req, res) => {
   const docRef = groupsCol.doc(groupId);
   const doc = await docRef.get();
   if (!doc.exists || !doc.data().members.includes(me)) return res.status(403).json({ error: "Kein Zugriff auf diese Gruppe." });
+  if (avatar !== undefined && !isValidImageValue(avatar))
+    return res.status(400).json({ error: "Ungültiges Gruppenbild (zu groß oder falsches Format)." });
   const updates = {};
   if (name !== undefined && name.trim().length > 0) updates.name = name.trim().substring(0, 50);
   if (avatar !== undefined) updates.avatar = avatar;
   await docRef.set(updates, { merge: true });
   const updated = (await docRef.get()).data();
-  updated.members.forEach(m => sendTo(m, { type: "groupUpdated", group: updated }));
-  res.json({ ok: true, group: updated });
+  notifyGroupMembers(updated, "groupUpdated");
+  res.json({ ok: true, group: groupForMember(updated, me) });
+});
+
+// Einmalige Nachrüstung für Gruppen, die vor der Verschlüsselung erstellt wurden und
+// deshalb noch kein "keys"-Feld haben. Wer zuerst schreibt, erzeugt einen neuen
+// Gruppenschlüssel und verteilt ihn an alle aktuellen Mitglieder.
+//
+// WICHTIG: Läuft als Firestore-Transaktion, nicht als einfaches read-then-write.
+// Ohne Transaktion können zwei Mitglieder, die fast gleichzeitig beitreten/öffnen,
+// jeweils ihren eigenen Schlüssel erzeugen und gegenseitig überschreiben - dann hat
+// jeder einen anderen Gruppenschlüssel und kann die Nachrichten des anderen nicht
+// mehr entschlüsseln. Die Transaktion stellt sicher, dass wirklich nur eine einzige
+// Initialisierung jemals gewinnt, egal wie knapp die Anfragen zeitlich beieinanderliegen.
+app.post("/api/groups/keys/init", async (req, res) => {
+  const { token, groupId, wrappedKeys } = req.body;
+  const me = getUserFromToken(token);
+  if (!me) return res.status(401).json({ error: "Nicht eingeloggt." });
+  const docRef = groupsCol.doc(groupId);
+  try {
+    const updated = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(docRef);
+      if (!doc.exists || !doc.data().members.includes(me)) {
+        const err = new Error("Kein Zugriff auf diese Gruppe.");
+        err.status = 403;
+        throw err;
+      }
+      const group = doc.data();
+      if (group.keys && Object.keys(group.keys).length > 0) {
+        return group; // schon initialisiert (von wem auch immer zuerst) - nichts überschreiben
+      }
+      const keys = {};
+      if (wrappedKeys && typeof wrappedKeys === "object") {
+        for (const u of group.members) {
+          const w = wrappedKeys[u];
+          if (w && typeof w.wrappedKey === "string" && typeof w.iv === "string") keys[u] = { wrappedKey: w.wrappedKey, iv: w.iv, from: me };
+        }
+      }
+      const next = { ...group, keys };
+      tx.set(docRef, { keys }, { merge: true });
+      return next;
+    });
+    notifyGroupMembers(updated, "groupUpdated");
+    res.json({ ok: true, group: groupForMember(updated, me) });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.status ? e.message : "Fehler bei der Schlüssel-Initialisierung." });
+  }
 });
 
 app.post("/api/groups/members/add", async (req, res) => {
-  const { token, groupId, usernames } = req.body;
+  const { token, groupId, usernames, newWrappedKeys } = req.body;
   const me = getUserFromToken(token);
   if (!me) return res.status(401).json({ error: "Nicht eingeloggt." });
   const docRef = groupsCol.doc(groupId);
@@ -457,11 +586,21 @@ app.post("/api/groups/members/add", async (req, res) => {
   const reallyNew = validUsers.filter(u => !group.members.includes(u));
   if (reallyNew.length === 0) return res.status(400).json({ error: "Keine neuen, gültigen Benutzer zum Hinzufügen gefunden." });
   const newMembers = [...group.members, ...reallyNew];
-  await docRef.set({ members: newMembers }, { merge: true });
-  const updated = { ...group, members: newMembers };
-  updated.members.forEach(m => sendTo(m, { type: "groupUpdated", group: updated }));
-  reallyNew.forEach(m => sendTo(m, { type: "groupCreated", group: updated }));
-  res.json({ ok: true, group: updated });
+  // Der Client, der hinzufügt, hat den Gruppenschlüssel bereits entschlüsselt und packt
+  // ihn hier für jedes neue Mitglied per ECDH neu ein. Nur Pakete für wirklich neue,
+  // gültige Mitglieder übernehmen - alles andere wird ignoriert.
+  const keys = { ...(group.keys || {}) };
+  if (newWrappedKeys && typeof newWrappedKeys === "object") {
+    for (const u of reallyNew) {
+      const w = newWrappedKeys[u];
+      if (w && typeof w.wrappedKey === "string" && typeof w.iv === "string") keys[u] = { wrappedKey: w.wrappedKey, iv: w.iv, from: me };
+    }
+  }
+  await docRef.set({ members: newMembers, keys }, { merge: true });
+  const updated = { ...group, members: newMembers, keys };
+  notifyGroupMembers(updated, "groupUpdated");
+  reallyNew.forEach(m => sendTo(m, { type: "groupCreated", group: groupForMember(updated, m) }));
+  res.json({ ok: true, group: groupForMember(updated, me) });
 });
 
 app.post("/api/groups/members/remove", async (req, res) => {
@@ -475,11 +614,13 @@ app.post("/api/groups/members/remove", async (req, res) => {
   const target = (username || "").trim().toLowerCase();
   if (!group.members.includes(target)) return res.status(400).json({ error: "Diese Person ist nicht in der Gruppe." });
   const newMembers = group.members.filter(m => m !== target);
-  await docRef.set({ members: newMembers }, { merge: true });
-  const updated = { ...group, members: newMembers };
-  updated.members.forEach(m => sendTo(m, { type: "groupUpdated", group: updated }));
+  const keys = { ...(group.keys || {}) };
+  delete keys[target]; // entfernte Person bekommt keine künftigen Gruppenschlüssel mehr
+  await docRef.set({ members: newMembers, keys }, { merge: true });
+  const updated = { ...group, members: newMembers, keys };
+  notifyGroupMembers(updated, "groupUpdated");
   sendTo(target, { type: "removedFromGroup", groupId });
-  res.json({ ok: true, group: updated });
+  res.json({ ok: true, group: groupForMember(updated, me) });
 });
 
 // ===== WebSocket Server =====
@@ -506,20 +647,19 @@ wss.on("connection", (ws) => {
 
     if (!myUsername) return;
 
-    // 1:1 Nachricht (Text, Bild, Sprachnachricht, Antwort auf Nachricht)
+    // 1:1 Nachricht - Text, Bild, Sprachnachricht und "Antwort auf" stecken alle
+    // gemeinsam in einem clientseitig per AES-GCM verschlüsselten Payload (ct/iv).
+    // Der Server sieht nur noch: wer, an wen, wann - niemals den Inhalt.
     if (data.type === "message") {
       const to = (data.to || "").trim().toLowerCase();
-      const text = (data.text || "").trim();
-      const image = data.image || "";
-      const audio = data.audio || "";
-      const duration = data.duration || 0;
-      const replyTo = data.replyTo || null;
-      if (!text && !image && !audio) return;
+      const ct = data.ct || "";
+      const iv = data.iv || "";
+      if (!ct || !iv) return;
       const toUser = await getUser(to);
       if (!toUser) return;
       const entry = {
         id: makeToken().substring(0, 10),
-        from: myUsername, text, image, audio, duration, replyTo,
+        from: myUsername, ct, iv,
         time: Date.now(), readBy: [], reactions: {}
       };
       const key = conversationKey(myUsername, to);
@@ -549,13 +689,10 @@ wss.on("connection", (ws) => {
       const doc = await docRef.get();
       if (!doc.exists) return;
       const group = doc.data();
-      const text = (data.text || "").trim();
-      const image = data.image || "";
-      const audio = data.audio || "";
-      const duration = data.duration || 0;
-      const replyTo = data.replyTo || null;
-      if (!group.members.includes(myUsername) || (!text && !image && !audio)) return;
-      const entry = { id: makeToken().substring(0, 10), from: myUsername, text, image, audio, duration, replyTo, time: Date.now(), readBy: [], reactions: {} };
+      const ct = data.ct || "";
+      const iv = data.iv || "";
+      if (!group.members.includes(myUsername) || !ct || !iv) return;
+      const entry = { id: makeToken().substring(0, 10), from: myUsername, ct, iv, time: Date.now(), readBy: [], reactions: {} };
       await docRef.set({ messages: admin.firestore.FieldValue.arrayUnion(entry) }, { merge: true });
       group.members.forEach(m => sendTo(m, { type: "groupMessage", groupId: data.groupId, message: entry }));
     }
