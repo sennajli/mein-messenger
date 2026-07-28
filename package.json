@@ -12,5 +12,8 @@
     "express": "^4.19.2",
     "firebase-admin": "^12.1.0",
     "ws": "^8.18.0"
+  },
+  "allowScripts": {
+    "protobufjs@7.6.5": true
   }
 }
